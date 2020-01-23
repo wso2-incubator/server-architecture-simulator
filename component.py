@@ -30,18 +30,9 @@ logger.setLevel(logging.INFO)
 SEED = 42
 random.seed(SEED)
 
-# load generator parameters
-THINK_TIME_DIST = random.expovariate
-
-# server parameters
-PROCESSING_TIME_DIST = random.expovariate
-
 
 class __Node:
-    def __init__(self, env, name=None):
-        if name is None:
-            name = np.random.randint(100, 1000)
-
+    def __init__(self, env, name):
         # store simpy environment
         self.env = env
 
@@ -72,7 +63,7 @@ class __Node:
 
 
 class Client(__Node, ABC):
-    def __init__(self, env, name=None):
+    def __init__(self, env, name):
         super().__init__(env, name)
         self.name = "client-%s" % str(self.name)
         self.input_queue = simpy.FilterStore(env)
@@ -138,17 +129,19 @@ class Client(__Node, ABC):
 
 
 class LoadGenerator(Client):
-    def __init__(self, env, avg_think_time, no_of_users=100, name=None):
+    def __init__(self, env, name, avg_think_time, no_of_users=100, think_time_dist=lambda x: random.expovariate(1 / x)):
         """
         initiate a load generator for closed system simulations
         simulates jmeter
         :param env: simpy environment
         :param avg_think_time: average think time prior to sending request
         :param no_of_users: no of users to simulate
+        :param think_time_dist : allows passing custom think time distributions
         :param name: name of the instance
         """
         self.avg_think_time = avg_think_time
         self.no_of_users = no_of_users
+        self.think_time_dist = think_time_dist
 
         super().__init__(env, name)
         self.name = "generator-%s" % str(self.name)
@@ -157,7 +150,7 @@ class LoadGenerator(Client):
         while True:
             # user thinks
             if self.avg_think_time > 0:
-                think_time = random.expovariate(1 / self.avg_think_time)
+                think_time = self.think_time_dist(self.avg_think_time)
                 yield self.env.timeout(think_time)
 
             yield from self.invoke(user_id)
@@ -169,8 +162,8 @@ class LoadGenerator(Client):
 
 class Server(__Node, ABC):
 
-    def __init__(self, env, avg_process_time, no_of_cores=4, max_pool_size=100, time_slice=1, cs_overhead=0.1,
-                 name=None):
+    def __init__(self, env, name, avg_process_time, no_of_cores=4, max_pool_size=100, time_slice=1, cs_overhead=0.1,
+                 process_time_dist=lambda x: random.expovariate(1 / x)):
         """
         initialized an server instance
         :param env: simply environment
@@ -179,6 +172,7 @@ class Server(__Node, ABC):
         :param max_pool_size: size of the main thread pool
         :param time_slice: time given to a single thread by the scheduler
         :param cs_overhead: context switch overhead
+        :param process_time_dist : allows passing custom process time distributions
         :param name: name of the instance
         """
 
@@ -189,6 +183,7 @@ class Server(__Node, ABC):
         self.max_pool_size = max_pool_size
         self.time_slice = time_slice
         self.cs_overhead = cs_overhead
+        self.process_time_dist = process_time_dist
 
         # application params
         self.task_queue = [self]
@@ -294,4 +289,4 @@ class Server(__Node, ABC):
         service.out_pipe = self.response_queue
 
     def compute_processing_time(self):
-        return random.expovariate(1 / self.avg_process_time)
+        return self.process_time_dist(self.avg_process_time)
