@@ -20,21 +20,27 @@ import simpy
 
 from component import Server, LoadGenerator
 
+# example ==================================================
+# +++++++++++++++++++ HOW TO RUN SIMULATOR +++++++++++++++++
+# simulated data flow ---- execution flow ---- request flow
+############################################################
+# jmeter --> server 0 --> server 1 --> server 3 --> server 1 --> server 0 --> server 2 --> server 0 --> jmeter
+
+
 if __name__ == '__main__':
-    concurrency = 50
+
+    # parameters to load generator
+    concurrency = 50  # no of users simulated
+    avg_think_time = 10
+
+    # parameters to define server resources and configurations
     no_of_cores = 4
-
-    processing_time = 5
-    think_time = 10
-
     pool_size = 100
     time_slice = 5
     cs_overhead = 0  # overhead due to context switches
 
+    # initiate simpy simulation environment
     env = simpy.Environment()
-
-    # request
-    # jmeter --> server 0 --> server 1 --> server 3 --> server 1 --> server 0 --> server 2 --> server 0 --> jmeter
 
     # create an array of servers
     servers_arr = [Server(env,
@@ -71,7 +77,7 @@ if __name__ == '__main__':
 
     # load generator (jmeter equivalent)
     load_generator = LoadGenerator(env,
-                                   avg_think_time=think_time,
+                                   avg_think_time=avg_think_time,
                                    no_of_users=concurrency,
                                    name='1')
 
@@ -95,8 +101,26 @@ if __name__ == '__main__':
     # also any processing/computations to execute the simulation have no effect
     env.run(10000)
 
+    # it is recommended to omit warm up period when reporting the measurements
+    warm_up_ratio = 0.25
+
     for i, server in enumerate(servers_arr):
         print("\n====== server %d ======" % i)
-        print(np.mean(load_generator.get_response_times(server)))
-        print(np.mean(load_generator.get_queue_lengths(server)))
-        print(len(load_generator.get_response_times(server)))
+        latency_arr = load_generator.get_response_times(server)
+        warm_up_limit = int(len(latency_arr) * warm_up_ratio)
+
+        latency = np.mean(latency_arr[warm_up_limit:])
+        wip = np.mean(load_generator.get_queue_lengths(server)[warm_up_limit:])
+
+        # here we compute the tps using little's law
+        # it is possible to use process start times to compute tps
+        tps_computed = wip / latency * 1000
+
+        start_times = load_generator.get_start_times(server)
+        tps_measure = len(start_times) / (start_times[-1] - start_times[0]) * 1000
+
+        print('no of request completed %d ' % int(len(latency_arr)))
+        print("latency : %.2f" % latency)
+        print("work-in-progress : %.2f" % wip)
+        print('throughput measured - %.2f' % tps_measure)
+        print('throughput computed - %.2f (using little\'s law)' % tps_computed)
