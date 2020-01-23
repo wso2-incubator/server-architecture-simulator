@@ -76,6 +76,9 @@ class DataPacket:
     def get_processed_time(self, service):
         return self.node_stats[service.name].elapsed_time
 
+    def get_req_start_time(self, service):
+        return self.node_stats[service.name].start_time
+
     def process_data(self, service, time_slice):
         processing_time = self.node_stats[service.name].processing_time
         if processing_time > time_slice:
@@ -117,8 +120,8 @@ class APIStat:
         self.waiting_time = self.env.now - self.start_time
         self.processing_time = self.service.compute_processing_time()
         self.elapsed_time = 0
-        self.queue_length = len(self.service.get_input_queue().items) + self.service.thread_count  + len(
-                    self.service.get_input_queue().put_queue)
+        self.queue_length = len(self.service.get_input_queue().items) + self.service.thread_count + len(
+            self.service.get_input_queue().put_queue)
 
     def update_at_client(self):
         self.response_time = self.env.now - self.start_time

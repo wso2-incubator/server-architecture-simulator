@@ -89,6 +89,16 @@ class Client(__Node, ABC):
         request.receive_client(self.connected_service)
         self.served_requests.append(request)
 
+    def get_start_times(self, service):
+        st_arr = []
+        for request in self.served_requests:
+            st = request.get_req_start_time(service)
+            if st is None:
+                logger.warning('request start time is not computed for service %s' % service.name)
+            else:
+                st_arr.append(st)
+        return st_arr
+
     def get_processing_times(self, service):
         pt_arr = []
         for request in self.served_requests:
