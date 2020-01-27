@@ -35,7 +35,7 @@ Collect the essential basic metrics at the load generator for each server that t
 
 ## Basic Usage
 
-### Sever-client architecture
+### Simple sever-client architecture
 
 1. First initiate a simpy simulation environment
 
@@ -69,7 +69,7 @@ Collect the essential basic metrics at the load generator for each server that t
         # also any processing/computations to execute the simulation have no effect
         env.run(10000)
         
-### Collect metrics
+### Metric Collection
  
     # it is recommended to omit warm up period when reporting the measurements
     # usually this is the time till the system becomes stable
@@ -94,7 +94,7 @@ Collect the essential basic metrics at the load generator for each server that t
     print('throughput - %.2f' % tps_measure)
 
 
-### Advance usage
+### Advanced usage
 
 This tool can be used to simulate complex architectures that invoke multiple servers. This can be simply achieve via using the following code line.
 
