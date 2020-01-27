@@ -145,6 +145,7 @@ class LoadGenerator(Client):
 
         super().__init__(env, name)
         self.name = "generator-%s" % str(self.name)
+        self.initiate()
 
     def __execute(self, user_id):
         while True:

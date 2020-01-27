@@ -91,9 +91,6 @@ if __name__ == '__main__':
     # invoke server 3 from server 1
     servers_arr[1].connect(servers_arr[3])
 
-    # initialized the load generator (will generate 50 users)
-    load_generator.initiate()
-
     print("simulation started")
 
     # run the experiments for 10000 milliseconds
