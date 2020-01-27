@@ -1,4 +1,4 @@
-# server-architecture-simulator
+# DES Server Simulator
 
 Server architecture simulations framework using discrete events simulations
 
