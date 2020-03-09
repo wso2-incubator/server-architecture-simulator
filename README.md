@@ -100,4 +100,4 @@ This tool can be used to simulate complex architectures that invoke multiple ser
 
     server_a.connect(server_b)
     
-Above will direct any request to the server_a to server_b. 
+Above will direct any request from the server_a to server_b. 
