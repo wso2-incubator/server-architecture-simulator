@@ -121,7 +121,7 @@ class APIStat:
         self.processing_time = self.service.compute_processing_time()
         self.elapsed_time = 0
         self.queue_length = len(self.service.get_input_queue().items) + self.service.thread_count + len(
-            self.service.get_input_queue().put_queue)
+            self.service.get_input_queue().put_queue) + 1  # 1 is for the current pack
 
     def update_at_client(self):
         self.response_time = self.env.now - self.start_time
