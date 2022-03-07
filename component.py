@@ -16,11 +16,12 @@
   under the License.
 """
 
-import simpy
 import logging
 import random
-import numpy as np
 from abc import abstractmethod, ABC
+
+import numpy as np
+import simpy
 
 from model import DataPacket, STATUS_ONHOLD, STATUS_PROCESSING, STATUS_COMPLETED
 
@@ -88,7 +89,7 @@ class Client(__Node, ABC):
                 logger.warning('request start time is not computed for service %s' % service.name)
             else:
                 st_arr.append(st)
-        return st_arr
+        return np.array(st_arr).flatten()
 
     def get_processing_times(self, service):
         pt_arr = []
@@ -98,7 +99,17 @@ class Client(__Node, ABC):
                 logger.warning('processing time is not computed for service %s' % service.name)
             else:
                 pt_arr.append(pt)
-        return pt_arr
+        return np.array(pt_arr).flatten()
+
+    def get_waiting_times(self, service):
+        wt_arr = []
+        for request in self.served_requests:
+            wt = request.get_waiting_time(service)
+            if wt is None:
+                logger.warning('waiting time is not computed for service %s' % service.name)
+            else:
+                wt_arr.append(wt)
+        return np.array(wt_arr).flatten()
 
     def get_response_times(self, service):
         rt_arr = []
@@ -108,7 +119,7 @@ class Client(__Node, ABC):
                 logger.warning('response time is not computed for service %s' % service.name)
             else:
                 rt_arr.append(rt)
-        return rt_arr
+        return np.array(rt_arr).flatten()
 
     def get_queue_lengths(self, service):
         ql_arr = []
@@ -118,7 +129,7 @@ class Client(__Node, ABC):
                 logger.warning('queue length is not computed for service %s' % service.name)
             else:
                 ql_arr.append(ql)
-        return ql_arr
+        return np.array(ql_arr).flatten()
 
     def initiate(self):
         pass
@@ -176,7 +187,6 @@ class Server(__Node, ABC):
         :param process_time_dist : allows passing custom process time distributions
         :param name: name of the instance
         """
-
         # workload params
         self.avg_process_time = avg_process_time
         self.no_of_cores = no_of_cores
@@ -201,6 +211,10 @@ class Server(__Node, ABC):
 
         # should be initiated
         self.out_pipe = None
+
+        # enable repeated calling of the service
+        # avoid multiple initializations
+        self.initialized = False
 
     def __kernel(self):
         while True:
@@ -240,8 +254,6 @@ class Server(__Node, ABC):
                         # process rest of the request
                         if processing_time > 0:
                             yield env.timeout(processing_time)
-                        else:
-                            logger.warning("process time <= 0 but still trying to process")
 
                         # move to next task
                         request.move_next_node(self.name)
@@ -281,9 +293,11 @@ class Server(__Node, ABC):
                 yield env.timeout(cs_overhead)
 
     def initiate(self):
-        self.env.process(self.__kernel())
-        for i in range(self.no_of_cores):
-            self.env.process(self.__execute())
+        if not self.initialized:
+            self.env.process(self.__kernel())
+            for i in range(self.no_of_cores):
+                self.env.process(self.__execute())
+            self.initialized = True
 
     def register_tasks(self, service):
         self.task_queue.append(service)
