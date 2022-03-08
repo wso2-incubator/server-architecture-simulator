@@ -219,12 +219,8 @@ class Server(__Node, ABC):
     def __kernel(self):
         while True:
             if self.thread_count < self.max_pool_size:
-                if self.avg_process_time > 0:
-                    request = yield self.get_input_queue().get()
-                    request.arrive_server(self)
-
-                else:
-                    raise Exception("${avg_processing_time} should be greater than zero")
+                request = yield self.get_input_queue().get()
+                request.arrive_server(self)
 
                 # acquire a thread
                 self.thread_count += 1
@@ -304,4 +300,4 @@ class Server(__Node, ABC):
         service.out_pipe = self.response_queue
 
     def compute_processing_time(self):
-        return self.process_time_dist(self.avg_process_time)
+        return self.process_time_dist(self.avg_process_time) if self.avg_process_time > 0 else 0
